@@ -14,15 +14,15 @@ import evosax as ex
 
 import matplotlib.pyplot as plt
 
-TARGET = "U"
+TARGET = "C"
 
 HIDDEN_DIMS = 8
 MSG_DIMS = 16
 ROLL_STEPS = 20
-N = 50
+N = 45
 
 POPSIZE = 64
-GENS = 10
+GENS = 1_000
 REPS = 1
 
 SAVE_FILE = "saves/pf.eqx"
@@ -33,7 +33,7 @@ def init_model(key):
 	return model
 
 def init_task(statics)->PatternFormationTask:
-	target = jnp.array(string_to_points(TARGET))
+	target = jnp.array(string_to_points(TARGET, font_size=13))
 	return PatternFormationTask(statics, target, devo_steps=ROLL_STEPS, N_particles=N)
 
 def init_trainer(task, params):

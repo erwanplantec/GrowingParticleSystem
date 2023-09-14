@@ -38,8 +38,8 @@ class ParticleSystem(BaseModel):
     """
     #-------------------------------------------------------------------
     cell: nn.GRUCell
-    pi: nn.MLP
-    msg: nn.MLP
+    pi: Union[nn.MLP, eqx.Module, Callable]
+    msg: Union[nn.MLP, eqx.Module, Callable]
     connector: Union[Callable, PyTree[...]]
     has_aux: bool
     aux_getter: Optional[Callable[[State], Float[Array, "N ..."]]]
@@ -57,13 +57,21 @@ class ParticleSystem(BaseModel):
         aux_getter: Optional[Callable[[State], Float[Array, "N ..."]]]=None,
         connector: Union[Callable, PyTree]=lambda s, *_: s,
         spatial_encoder: Callable=lambda x:x,
-        spatial_encoding_dims: int=2):
+        spatial_encoding_dims: int=2,
+        pi_fn: Optional[Union[Callable, eqx.Module]]=None,
+        msg_fn: Optional[Union[Callable, eqx.Module]]=None):
 
         key_cell, key_pi, key_msg = jr.split(key, 3)
 
         self.cell = nn.GRUCell(msg_dims+aux_dims+spatial_encoding_dims, hidden_dims, key=key_cell)
-        self.pi = nn.MLP(hidden_dims, spatial_dims, 32, 1, key=key_pi)
-        self.msg = nn.MLP(hidden_dims+spatial_dims, msg_dims, 32, 1, key=key_msg)
+        if pi_fn is None:
+            self.pi = nn.MLP(hidden_dims, spatial_dims, 32, 1, key=key_pi)
+        else: 
+            self.pi  = pi_fn
+        if msg_fn is None:
+            self.msg = nn.MLP(hidden_dims+spatial_dims, msg_dims, 32, 1, key=key_msg)
+        else:
+            self.msg = msg_fn
         self.connector = connector
         self.has_aux = aux_dims > 0
         if self.has_aux: assert aux_getter is not None
@@ -90,6 +98,9 @@ class ParticleSystem(BaseModel):
         v = jax.vmap(self.pi)(h)
         d = (h[:, 0]>0.5).astype(float)
         h = jnp.where(d[:, None], h.at[:, 0].set(0.), h)
+        if state.mask is not None:
+            h = h * state.mask[:,None]
+            v = v * state.mask[:,None]
 
         return state._replace(h=h, p=state.p+v, divs=d)
 
