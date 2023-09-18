@@ -38,8 +38,8 @@ class ParticleSystem(BaseModel):
     """
     #-------------------------------------------------------------------
     cell: nn.GRUCell
-    pi: Union[nn.MLP, eqx.Module, Callable]
-    msg: Union[nn.MLP, eqx.Module, Callable]
+    pi: Union[nn.MLP, Callable]
+    msg: Union[nn.MLP, Callable]
     connector: Union[Callable, PyTree[...]]
     has_aux: bool
     aux_getter: Optional[Callable[[State], Float[Array, "N ..."]]]
@@ -58,8 +58,8 @@ class ParticleSystem(BaseModel):
         connector: Union[Callable, PyTree]=lambda s, *_: s,
         spatial_encoder: Callable=lambda x:x,
         spatial_encoding_dims: int=2,
-        pi_fn: Optional[Union[Callable, eqx.Module]]=None,
-        msg_fn: Optional[Union[Callable, eqx.Module]]=None):
+        pi_fn: Optional[Callable]=None,
+        msg_fn: Optional[Callable]=None):
 
         key_cell, key_pi, key_msg = jr.split(key, 3)
 
@@ -97,7 +97,7 @@ class ParticleSystem(BaseModel):
         h = jax.vmap(self.cell)(x, state.h)
         v = jax.vmap(self.pi)(h)
         d = (h[:, 0]>0.5).astype(float)
-        h = jnp.where(d[:, None], h.at[:, 0].set(0.), h)
+        h = jnp.where(d[:, None], h.at[:, 0].set(-1.), h)
         if state.mask is not None:
             h = h * state.mask[:,None]
             v = v * state.mask[:,None]

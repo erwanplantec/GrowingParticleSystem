@@ -34,7 +34,7 @@ def init_trainer(task, params):
 	return trainer
 
 def init_task(statics: PyTree):
-	task = DyadicTask(statics, HIDDEN_DIMS, ROLL_STEPS, goal_type=GOAL_TYPE)
+	task = DyadicTask(statics, HIDDEN_DIMS, ROLL_STEPS, goal_type=GOAL_TYPE, homeostasis=True)
 	return task
 
 def init_model(key):
@@ -48,7 +48,6 @@ def show_results(data):
 	plt.scatter(jnp.arange(fits.shape[0]), fits, alpha=.3, s=10)
 	plt.plot(bests_fit, color="r")
 	plt.show()
-
 def main():
 	key = jr.PRNGKey(10101)
 

@@ -25,15 +25,17 @@ class DyadicTask(eqx.Module):
 	statics: PyTree
 	rollout_steps: int
 	goal_type: str
+	homeostasis: float
 	#-------------------------------------------------------------------
 
 	def __init__(self, statics: PyTree[...], particle_hidden_dims: int,
-				 rollout_steps: int=20, goal_type: str = "xn"):
+				 rollout_steps: int=20, goal_type: str = "xn", homeostasis: float=0.):
 		
 		self.statics = statics
 		self.particle_hidden_dims = particle_hidden_dims
 		self.rollout_steps = rollout_steps
 		self.goal_type = goal_type
+		self.homeostasis = homeostasis
 
 	#-------------------------------------------------------------------
 
@@ -45,11 +47,17 @@ class DyadicTask(eqx.Module):
 		init_state = self.init_state(key_state)
 		end_state, states = model.rollout(init_state, key_rollout, self.rollout_steps)
 
+		assert isinstance(init_state.aux, Goal)
+
 		g = {}
 		g["x"] = end_state.p[0] #(2,)
 		g["n"] = states.divs.sum(0)[0, None] #(1,)
 		g = jnp.concatenate([g[_g] for _g in self.goal_type], axis=-1)
 		l = jnp.square(init_state.aux.goal - g).mean() 
+
+		if self.homeostasis > 0.:
+			homeo_h = jnp.zeros((self.particle_hidden_dims,)).at[0].set(-1.)
+			l = l + jnp.square(end_state.h - homeo_h).sum()*self.homeostasis
 
 		return l
 
