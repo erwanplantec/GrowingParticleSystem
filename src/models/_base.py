@@ -5,11 +5,10 @@ import jax.random as jr
 import equinox as eqx 
 import equinox.nn as nn
 
-from typing import NamedTuple, Tuple
-from jaxtyping import Float, Array, Int
+from typing import NamedTuple, Tuple, TypeAlias
+from jaxtyping import Float, Array, Int, PyTree
 
-class State(NamedTuple):
-	pass
+State: TypeAlias = PyTree
 
 class BaseModel(eqx.Module):
 	
